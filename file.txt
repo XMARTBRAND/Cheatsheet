@@ -111,20 +111,7 @@ app.put('/api/items/:id', async (req, res) => {
   res.json(updatedItem);
 });
 
-app.delete('/api/items/:id', async (req, res) => {
-    try {
-      const result = await Item.findByIdAndRemove(req.params.id);
-      if (!result) {
-        console.error('Item not found');
-        return res.status(404).json({ error: 'Item not found' });
-      }
-      console.log('Item deleted successfully');
-      return res.json({ message: 'Item deleted' });
-    } catch (error) {
-      console.error('Delete error:', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
-    }
-  });
+
   
   
 
