@@ -1,1 +1,144 @@
 this is file
+
+===================================================================================
+========================================== CRUD APP ===============================
+===================================================================================
+
+-------- FRONT END-------------------
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+function App() {
+  const [items, setItems] = useState([]);
+  const [itemName, setItemName] = useState('');
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    const response = await axios.get('http://localhost:5000/api/items');
+    setItems(response.data);
+  };
+
+  const handleAddItem = async () => {
+    await axios.post('http://localhost:5000/api/items', { name: itemName });
+    setItemName('');
+    fetchData();
+  };
+
+  const handleUpdateItem = async (id, newName) => {
+    await axios.put(`http://localhost:5000/api/items/${id}`, { name: newName });
+    fetchData();
+  };
+
+  const handleDeleteItem = async (id) => {
+    console.log('Deleting item with ID:', id);
+    try {
+      await axios.delete(`http://localhost:5000/api/items/${id}`);
+      console.log('Item deleted successfully');
+      fetchData(); // Refresh data after deletion
+    } catch (error) {
+      console.error('Delete error:', error);
+    }
+  };
+
+  return (
+    <div className="App">
+      <h1>MERN CRUD App</h1>
+      <div>
+        <input
+          type="text"
+          value={itemName}
+          onChange={(e) => setItemName(e.target.value)}
+        />
+        <button onClick={handleAddItem}>Add Item</button>
+      </div>
+      <ul>
+        {items.map((item) => (
+          <li key={item._id}>
+            {item.name}
+            <button onClick={() => handleUpdateItem(item._id, prompt('Enter new name:'))}>Update</button>
+            <button onClick={() => handleDeleteItem(item._id)}>Delete</button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default App;
+
+---------------------- BACK END-------------------------
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+
+const app = express();
+const port = 5000;
+
+// Enable CORS
+app.use(cors({
+    origin: 'http://localhost:3000', // Adjust this based on your frontend's URL
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  }));
+
+// Body parser middleware
+app.use(express.json());
+
+// Connect to MongoDB
+mongoose.connect('mongodb+srv://smart:smart123@cluster0.emtclnl.mongodb.net/test', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+}).then(()=>{
+    console.log("data base is coonected")
+}).catch(
+    console.log("data base is not connected"))
+
+// Define a simple schema for our data
+const itemSchema = new mongoose.Schema({
+  name: String,
+});
+
+const Item = mongoose.model('Item', itemSchema);
+
+// API routes
+app.get('/api/items', async (req, res) => {
+  const items = await Item.find();
+  res.json(items);
+});
+
+app.post('/api/items', async (req, res) => {
+  const newItem = new Item(req.body);
+  await newItem.save();
+  res.json(newItem);
+});
+
+app.put('/api/items/:id', async (req, res) => {
+  const updatedItem = await Item.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  res.json(updatedItem);
+});
+
+app.delete('/api/items/:id', async (req, res) => {
+    try {
+      const result = await Item.findByIdAndRemove(req.params.id);
+      if (!result) {
+        console.error('Item not found');
+        return res.status(404).json({ error: 'Item not found' });
+      }
+      console.log('Item deleted successfully');
+      return res.json({ message: 'Item deleted' });
+    } catch (error) {
+      console.error('Delete error:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
+  
+  
+
+// Start the server
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
+
